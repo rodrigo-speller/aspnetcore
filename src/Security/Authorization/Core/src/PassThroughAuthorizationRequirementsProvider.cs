@@ -24,6 +24,11 @@ namespace Microsoft.AspNetCore.Authorization
                 return await requirementsProvider.GetRequirementsAsync(authorizeData);
             }
 
+            if (authorizeData is IAuthorizationRequirement requirement)
+            {
+                return new[] { requirement };
+            }
+
             return await AuthorizationRequirementsProvider.EmptyResult;
         }
     }
