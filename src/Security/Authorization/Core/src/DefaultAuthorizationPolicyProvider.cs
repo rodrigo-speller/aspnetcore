@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 
@@ -14,6 +16,7 @@ namespace Microsoft.AspNetCore.Authorization
     public class DefaultAuthorizationPolicyProvider : IAuthorizationPolicyProvider
     {
         private readonly AuthorizationOptions _options;
+        private readonly IEnumerable<IAuthorizationRequirementsProvider> _requirementsProviders;
         private Task<AuthorizationPolicy> _cachedDefaultPolicy;
         private Task<AuthorizationPolicy> _cachedFallbackPolicy;
 
@@ -21,14 +24,24 @@ namespace Microsoft.AspNetCore.Authorization
         /// Creates a new instance of <see cref="DefaultAuthorizationPolicyProvider"/>.
         /// </summary>
         /// <param name="options">The options used to configure this instance.</param>
-        public DefaultAuthorizationPolicyProvider(IOptions<AuthorizationOptions> options)
+        /// <param name="requirementsProviders">
+        /// The <see cref="IAuthorizationRequirementsProvider"/> that provides the set of
+        /// <see cref="IAuthorizationRequirement" /> for the policy.
+        /// </param>
+        public DefaultAuthorizationPolicyProvider(IOptions<AuthorizationOptions> options, IEnumerable<IAuthorizationRequirementsProvider> requirementsProviders)
         {
             if (options == null)
             {
                 throw new ArgumentNullException(nameof(options));
             }
 
+            if (requirementsProviders is null)
+            {
+                throw new ArgumentNullException(nameof(requirementsProviders));
+            }
+
             _options = options.Value;
+            _requirementsProviders = requirementsProviders;
         }
 
         /// <summary>
@@ -70,6 +83,88 @@ namespace Microsoft.AspNetCore.Authorization
             // policyName for every request or it could allow undesired access. It also must return synchronously.
             // A change to either of these behaviors would require shipping a patch of MVC as well.
             return Task.FromResult(_options.GetPolicy(policyName));
+        }
+
+        /// <inheritdoc />
+        public virtual async Task<AuthorizationPolicy> CreatePolicyAsync(IEnumerable<IAuthorizeData> authorizeData)
+        {
+            if (authorizeData == null)
+            {
+                throw new ArgumentNullException(nameof(authorizeData));
+            }
+
+            // Avoid allocating enumerator if the data is known to be empty
+            var skipEnumeratingData = false;
+            if (authorizeData is IList<IAuthorizeData> dataList)
+            {
+                skipEnumeratingData = dataList.Count == 0;
+            }
+
+            AuthorizationPolicyBuilder policyBuilder = null;
+            if (!skipEnumeratingData)
+            {
+                foreach (var authorizeDatum in authorizeData)
+                {
+                    if (policyBuilder == null)
+                    {
+                        policyBuilder = new AuthorizationPolicyBuilder();
+                    }
+
+                    var useDefaultPolicy = true;
+                    if (!string.IsNullOrWhiteSpace(authorizeDatum.Policy))
+                    {
+                        var policy = await GetPolicyAsync(authorizeDatum.Policy);
+                        if (policy == null)
+                        {
+                            throw new InvalidOperationException(Resources.FormatException_AuthorizationPolicyNotFound(authorizeDatum.Policy));
+                        }
+                        policyBuilder.Combine(policy);
+                        useDefaultPolicy = false;
+                    }
+
+                    foreach (var requirementsProvider in _requirementsProviders)
+                    {
+                        var requirements = await requirementsProvider.GetRequirementsAsync(authorizeDatum);
+                        var requirementsArray = requirements as IAuthorizationRequirement[] ?? requirements.ToArray();
+
+                        if (requirementsArray.Length > 0)
+                        {
+                            useDefaultPolicy = false;
+                        }
+
+                        policyBuilder.AddRequirements(requirementsArray);
+                    }
+
+                    var authTypesSplit = authorizeDatum.AuthenticationSchemes?.Split(',');
+                    if (authTypesSplit?.Length > 0)
+                    {
+                        foreach (var authType in authTypesSplit)
+                        {
+                            if (!string.IsNullOrWhiteSpace(authType))
+                            {
+                                policyBuilder.AuthenticationSchemes.Add(authType.Trim());
+                            }
+                        }
+                    }
+
+                    if (useDefaultPolicy)
+                    {
+                        policyBuilder.Combine(await GetDefaultPolicyAsync());
+                    }
+                }
+            }
+
+            // If we have no policy by now, use the fallback policy if we have one
+            if (policyBuilder == null)
+            {
+                var fallbackPolicy = await GetFallbackPolicyAsync();
+                if (fallbackPolicy != null)
+                {
+                    return fallbackPolicy;
+                }
+            }
+
+            return policyBuilder?.Build();
         }
     }
 }

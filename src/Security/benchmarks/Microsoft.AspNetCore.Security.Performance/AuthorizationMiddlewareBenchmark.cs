@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -20,7 +20,10 @@ namespace Microsoft.AspNetCore.Security
         [GlobalSetup]
         public void Setup()
         {
-            var policyProvider = new DefaultAuthorizationPolicyProvider(Options.Create(new AuthorizationOptions()));
+            var policyProvider = new DefaultAuthorizationPolicyProvider(
+                Options.Create(new AuthorizationOptions()),
+                Array.Empty<IAuthorizationRequirementsProvider>()
+            );
             _authorizationMiddleware = new AuthorizationMiddleware((context) => Task.CompletedTask, policyProvider);
 
             _httpContextNoEndpoint = new DefaultHttpContext();

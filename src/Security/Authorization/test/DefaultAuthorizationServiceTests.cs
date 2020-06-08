@@ -29,7 +29,10 @@ namespace Microsoft.AspNetCore.Authorization.Test
         [Fact]
         public async Task AuthorizeCombineThrowsOnUnknownPolicy()
         {
-            var provider = new DefaultAuthorizationPolicyProvider(Options.Create(new AuthorizationOptions()));
+            var provider = new DefaultAuthorizationPolicyProvider(
+                Options.Create(new AuthorizationOptions()),
+                Array.Empty<IAuthorizationRequirementsProvider>()
+            );
 
             // Act
             await Assert.ThrowsAsync<InvalidOperationException>(() => AuthorizationPolicy.CombineAsync(provider, new AuthorizeAttribute[] {
@@ -1036,6 +1039,11 @@ namespace Microsoft.AspNetCore.Authorization.Test
             {
                 return Task.FromResult(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
             }
+
+            public Task<AuthorizationPolicy> CreatePolicyAsync(IEnumerable<IAuthorizeData> authorizeData)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         [Fact]
@@ -1074,6 +1082,11 @@ namespace Microsoft.AspNetCore.Authorization.Test
             public Task<AuthorizationPolicy> GetPolicyAsync(string policyName)
             {
                 return Task.FromResult(new AuthorizationPolicyBuilder().RequireClaim(policyName).Build());
+            }
+
+            public Task<AuthorizationPolicy> CreatePolicyAsync(IEnumerable<IAuthorizeData> authorizeData)
+            {
+                throw new NotImplementedException();
             }
         }
 

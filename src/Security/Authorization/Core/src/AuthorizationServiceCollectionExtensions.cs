@@ -35,6 +35,8 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAdd(ServiceDescriptor.Transient<IAuthorizationEvaluator, DefaultAuthorizationEvaluator>());
             services.TryAdd(ServiceDescriptor.Transient<IAuthorizationHandlerContextFactory, DefaultAuthorizationHandlerContextFactory>());
             services.TryAddEnumerable(ServiceDescriptor.Transient<IAuthorizationHandler, PassThroughAuthorizationHandler>());
+            services.TryAddEnumerable(ServiceDescriptor.Transient<IAuthorizationRequirementsProvider, RolesAuthorizationRequirementsProvider>());
+            services.TryAddEnumerable(ServiceDescriptor.Transient<IAuthorizationRequirementsProvider, PassThroughAuthorizationRequirementsProvider>());
             return services;
         }
 

@@ -33,7 +33,10 @@ namespace Microsoft.AspNetCore.Authorization.Test
             options.AddPolicy("1", policy => policy.RequireClaim("1"));
             options.AddPolicy("2", policy => policy.RequireClaim("2"));
 
-            var provider = new DefaultAuthorizationPolicyProvider(Options.Create(options));
+            var provider = new DefaultAuthorizationPolicyProvider(
+                Options.Create(options),
+                new IAuthorizationRequirementsProvider[] { new RolesAuthorizationRequirementsProvider() }
+            );
 
             // Act
             var combined = await AuthorizationPolicy.CombineAsync(provider, attributes);
@@ -60,7 +63,10 @@ namespace Microsoft.AspNetCore.Authorization.Test
             options.DefaultPolicy = new AuthorizationPolicyBuilder("default").RequireClaim("default").Build();
             options.AddPolicy("2", policy => policy.RequireClaim("2"));
 
-            var provider = new DefaultAuthorizationPolicyProvider(Options.Create(options));
+            var provider = new DefaultAuthorizationPolicyProvider(
+                Options.Create(options),
+                Array.Empty<IAuthorizationRequirementsProvider>()
+            );
 
             // Act
             var combined = await AuthorizationPolicy.CombineAsync(provider, attributes);
@@ -82,7 +88,10 @@ namespace Microsoft.AspNetCore.Authorization.Test
                 new AuthorizeAttribute() { Roles = "r1 , r2" }
             };
             var options = new AuthorizationOptions();
-            var provider = new DefaultAuthorizationPolicyProvider(Options.Create(options));
+            var provider = new DefaultAuthorizationPolicyProvider(
+                Options.Create(options),
+                new IAuthorizationRequirementsProvider[] { new RolesAuthorizationRequirementsProvider() }
+            );
 
             // Act
             var combined = await AuthorizationPolicy.CombineAsync(provider, attributes);
@@ -104,7 +113,10 @@ namespace Microsoft.AspNetCore.Authorization.Test
             };
             var options = new AuthorizationOptions();
 
-            var provider = new DefaultAuthorizationPolicyProvider(Options.Create(options));
+            var provider = new DefaultAuthorizationPolicyProvider(
+                Options.Create(options),
+                Array.Empty<IAuthorizationRequirementsProvider>()
+            );
 
             // Act
             var combined = await AuthorizationPolicy.CombineAsync(provider, attributes);
@@ -114,7 +126,7 @@ namespace Microsoft.AspNetCore.Authorization.Test
             Assert.Contains(combined.AuthenticationSchemes, a => a.Equals("a1"));
             Assert.Contains(combined.AuthenticationSchemes, a => a.Equals("a2"));
         }
-        
+
         [Fact]
         public async Task CombineMustIgnoreEmptyAuthenticationScheme()
         {
@@ -124,7 +136,10 @@ namespace Microsoft.AspNetCore.Authorization.Test
             };
             var options = new AuthorizationOptions();
 
-            var provider = new DefaultAuthorizationPolicyProvider(Options.Create(options));
+            var provider = new DefaultAuthorizationPolicyProvider(
+                Options.Create(options),
+                Array.Empty<IAuthorizationRequirementsProvider>()
+            );
 
             // Act
             var combined = await AuthorizationPolicy.CombineAsync(provider, attributes);
@@ -134,7 +149,7 @@ namespace Microsoft.AspNetCore.Authorization.Test
             Assert.Contains(combined.AuthenticationSchemes, a => a.Equals("a1"));
             Assert.Contains(combined.AuthenticationSchemes, a => a.Equals("a2"));
         }
-        
+
         [Fact]
         public async Task CombineMustIgnoreEmptyRoles()
         {
@@ -143,7 +158,10 @@ namespace Microsoft.AspNetCore.Authorization.Test
                 new AuthorizeAttribute() { Roles = "r1 , ,, , r2" }
             };
             var options = new AuthorizationOptions();
-            var provider = new DefaultAuthorizationPolicyProvider(Options.Create(options));
+            var provider = new DefaultAuthorizationPolicyProvider(
+                Options.Create(options),
+                new IAuthorizationRequirementsProvider[] { new RolesAuthorizationRequirementsProvider() }
+            );
 
             // Act
             var combined = await AuthorizationPolicy.CombineAsync(provider, attributes);

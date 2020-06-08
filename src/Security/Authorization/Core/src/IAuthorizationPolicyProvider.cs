@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.Authorization
@@ -28,5 +29,16 @@ namespace Microsoft.AspNetCore.Authorization
         /// </summary>
         /// <returns>The fallback authorization policy.</returns>
         Task<AuthorizationPolicy> GetFallbackPolicyAsync();
+
+        /// <summary>
+        /// Creates an <see cref="AuthorizationPolicy"/> by combining the
+        /// <see cref="IAuthorizeData"/> set.
+        /// </summary>
+        /// <param name="authorizeData">A set of authorization data used to create an authorization policy.</param>
+        /// <returns>
+        /// A new <see cref="AuthorizationPolicy"/> that represents the combination
+        /// of an authorization data set.
+        /// </returns>
+        Task<AuthorizationPolicy> CreatePolicyAsync(IEnumerable<IAuthorizeData> authorizeData);
     }
 }

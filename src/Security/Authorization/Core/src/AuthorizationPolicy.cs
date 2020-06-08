@@ -108,6 +108,7 @@ namespace Microsoft.AspNetCore.Authorization
         /// A new <see cref="AuthorizationPolicy"/> which represents the combination of the
         /// authorization policies provided by the specified <paramref name="policyProvider"/>.
         /// </returns>
+        [Obsolete("Use IAuthorizationPolicyProvider.CreatePolicyAsync(IEnumerable<IAuthorizeData> authorizeData) instead.")]
         public static async Task<AuthorizationPolicy> CombineAsync(IAuthorizationPolicyProvider policyProvider, IEnumerable<IAuthorizeData> authorizeData)
         {
             if (policyProvider == null)
@@ -120,73 +121,7 @@ namespace Microsoft.AspNetCore.Authorization
                 throw new ArgumentNullException(nameof(authorizeData));
             }
 
-            // Avoid allocating enumerator if the data is known to be empty
-            var skipEnumeratingData = false;
-            if (authorizeData is IList<IAuthorizeData> dataList)
-            {
-                skipEnumeratingData = dataList.Count == 0;
-            }
-
-            AuthorizationPolicyBuilder policyBuilder = null;
-            if (!skipEnumeratingData)
-            {
-                foreach (var authorizeDatum in authorizeData)
-                {
-                    if (policyBuilder == null)
-                    {
-                        policyBuilder = new AuthorizationPolicyBuilder();
-                    }
-
-                    var useDefaultPolicy = true;
-                    if (!string.IsNullOrWhiteSpace(authorizeDatum.Policy))
-                    {
-                        var policy = await policyProvider.GetPolicyAsync(authorizeDatum.Policy);
-                        if (policy == null)
-                        {
-                            throw new InvalidOperationException(Resources.FormatException_AuthorizationPolicyNotFound(authorizeDatum.Policy));
-                        }
-                        policyBuilder.Combine(policy);
-                        useDefaultPolicy = false;
-                    }
-
-                    var rolesSplit = authorizeDatum.Roles?.Split(',');
-                    if (rolesSplit?.Length > 0)
-                    {
-                        var trimmedRolesSplit = rolesSplit.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r.Trim());
-                        policyBuilder.RequireRole(trimmedRolesSplit);
-                        useDefaultPolicy = false;
-                    }
-
-                    var authTypesSplit = authorizeDatum.AuthenticationSchemes?.Split(',');
-                    if (authTypesSplit?.Length > 0)
-                    {
-                        foreach (var authType in authTypesSplit)
-                        {
-                            if (!string.IsNullOrWhiteSpace(authType))
-                            {
-                                policyBuilder.AuthenticationSchemes.Add(authType.Trim());
-                            }
-                        }
-                    }
-
-                    if (useDefaultPolicy)
-                    {
-                        policyBuilder.Combine(await policyProvider.GetDefaultPolicyAsync());
-                    }
-                }
-            }
-
-            // If we have no policy by now, use the fallback policy if we have one
-            if (policyBuilder == null)
-            {
-                var fallbackPolicy = await policyProvider.GetFallbackPolicyAsync();
-                if (fallbackPolicy != null)
-                {
-                    return fallbackPolicy;
-                }
-            }
-
-            return policyBuilder?.Build();
+            return await policyProvider.CreatePolicyAsync(authorizeData);
         }
     }
 }
