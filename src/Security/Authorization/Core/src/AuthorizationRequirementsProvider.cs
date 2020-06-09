@@ -18,6 +18,16 @@ namespace Microsoft.AspNetCore.Authorization
         public static readonly Task<IEnumerable<IAuthorizationRequirement>> EmptyResult
             = Task.FromResult(Enumerable.Empty<IAuthorizationRequirement>());
 
+        /// <summary>
+        /// Helper to normalize result.
+        /// </summary>
+        /// <param name="requirements">Requirements instances.</param>
+        /// <returns>Normalized result.</returns>
+        public static Task<IEnumerable<IAuthorizationRequirement>> Result(params IAuthorizationRequirement[] requirements)
+        {
+            return Task.FromResult((IEnumerable<IAuthorizationRequirement>)requirements);
+        }
+
         /// <inheritdoc />
         public abstract Task<IEnumerable<IAuthorizationRequirement>> GetRequirementsAsync(IAuthorizeData authorizeData);
     }
