@@ -17,6 +17,6 @@ namespace Microsoft.AspNetCore.Authorization
         /// </summary>
         /// <param name="authorizeData">The authorization data.</param>
         /// <returns>Authorization requirements based on authorization data.</returns>
-        public Task<IEnumerable<IAuthorizationRequirement>> GetRequirementsAsync(IAuthorizeData authorizeData);
+        Task<IEnumerable<IAuthorizationRequirement>> GetRequirementsAsync(IAuthorizeData authorizeData);
     }
 }
